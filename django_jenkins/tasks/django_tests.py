@@ -38,5 +38,8 @@ class Task(BaseTask):
                             pass
         else:
             for app in get_apps():
-                if app not in self.exclude_apps:
+                appname = app.__name__
+                if '.' in appname:
+                    appname = appname.split('.')[0]
+                if appname not in self.exclude_apps:
                     suite.addTest(build_suite(app))
