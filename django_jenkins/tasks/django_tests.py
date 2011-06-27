@@ -24,22 +24,30 @@ class Task(BaseTask):
             if hasattr(settings, 'PROJECT_APPS') and not options['test_all']:
                 self.test_labels = [app_name.split('.')[-1] for app_name in settings.PROJECT_APPS]
 
+    def _check_not_excluded(self, app_name):
+        if '.' in app_name:
+            arr = app_name.split('.')
+            for i in xrange(1, len(arr)+1):
+                if '.'.join(arr[0:i]) in self.exclude_apps:
+                    return False
+            return True
+        return app_name not in self.exclude_apps
+
     def build_suite(self, suite, **kwargs):
         if self.test_labels:
             for label in self.test_labels:
                 if label not in self.exclude_apps:
                     if '.' in label:
-                        suite.addTest(build_test(label))
+                        if self._check_not_excluded(label):
+                            suite.addTest(build_test(label))
                     else:
                         try:
                             app = get_app(label)
-                            suite.addTest(build_suite(app))
+                            if self._check_not_excluded(app.__name__):
+                                suite.addTest(build_suite(app))
                         except ImproperlyConfigured:
                             pass
         else:
             for app in get_apps():
-                appname = app.__name__
-                if '.' in appname:
-                    appname = appname.split('.')[0]
-                if appname not in self.exclude_apps:
+                if self._check_not_excluded(app.__name__):
                     suite.addTest(build_suite(app))
